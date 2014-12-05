@@ -277,7 +277,6 @@ var draw = function (text, id,isDot) {
 var init = function () {
     var arr = document.querySelectorAll('.mermaid');
 
-    var cnt = 0;
     for (i = 0; i < arr.length; i++) {
         var element = arr[i];
 
@@ -288,8 +287,7 @@ var init = function () {
 
         var id;
 
-        id = 'mermaidChart' + cnt;
-        cnt++;
+        id = 'mermaidChart' + i;
 
         var txt = element.innerHTML;
         txt = txt.replace(/>/g,'&gt;');
