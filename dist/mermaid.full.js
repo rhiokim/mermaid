@@ -13022,7 +13022,7 @@ module.exports={
     "codeclimate-test-reporter": "0.0.4",
     "d3": "~3.4.13",
     "dagre-d3": "~0.3.2",
-    "gulp": "~3.8.9",
+    "gulp": "~3.8.10",
     "gulp-browserify": "^0.5.0",
     "gulp-bump": "^0.1.11",
     "gulp-concat": "~2.4.1",
@@ -13337,7 +13337,6 @@ var draw = function (text, id,isDot) {
 var init = function () {
     var arr = document.querySelectorAll('.mermaid');
 
-    var cnt = 0;
     for (i = 0; i < arr.length; i++) {
         var element = arr[i];
 
@@ -13348,8 +13347,7 @@ var init = function () {
 
         var id;
 
-        id = 'mermaidChart' + cnt;
-        cnt++;
+        id = 'mermaidChart' + i;
 
         var txt = element.innerHTML;
         txt = txt.replace(/>/g,'&gt;');
