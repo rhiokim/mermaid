@@ -4,7 +4,18 @@
 var graph = require('./graphDb');
 var flow = require('./parser/flow');
 var dot = require('./parser/dot');
-var dagreD3 = require('dagre-d3');
+var dagreD3 = require('./dagre-d3');
+var d3 = require('./d3');
+var conf = {
+};
+module.exports.setConf = function(cnf){
+    var keys = Object.keys(cnf);
+    var i;
+    for(i=0;i<keys.length;i++){
+        conf[keys[i]] = cnf[keys[i]];
+    }
+};
+
 /**
  * Function that adds the vertices found in the graph definition to the graph to be rendered.
  * @param vert Object containing the vertices.
@@ -60,7 +71,13 @@ exports.addVertices = function (vert, g) {
             verticeText = vertice.text;
         }
 
-        console.log(verticeText);
+        var labelTypeStr = '';
+        if(global.mermaid.htmlLabels) {
+            labelTypeStr = 'html';
+        } else {
+            verticeText = verticeText.replace(/<br>/g, "\n");
+            labelTypeStr = 'text';
+        }
 
         var radious = 0;
         var _shape = '';
@@ -80,6 +97,9 @@ exports.addVertices = function (vert, g) {
             case 'odd':
                 _shape = 'rect_left_inv_arrow';
                 break;
+            case 'odd_right':
+                _shape = 'rect_left_inv_arrow';
+                break;
             case 'circle':
                 _shape = 'circle';
                 break;
@@ -87,7 +107,7 @@ exports.addVertices = function (vert, g) {
                 _shape = 'rect';
         }
         // Add the node
-        g.setNode(vertice.id, {labelType: "html",shape:_shape, label: verticeText, rx: radious, ry: radious, class: classStr, style: style, id:vertice.id});
+        g.setNode(vertice.id, {labelType: labelTypeStr, shape:_shape, label: verticeText, rx: radious, ry: radious, class: classStr, style: style, id:vertice.id});
     });
 };
 
@@ -99,6 +119,13 @@ exports.addVertices = function (vert, g) {
 exports.addEdges = function (edges, g) {
     var cnt=0;
     var aHead;
+    
+    var defaultStyle;
+    if(typeof edges.defaultStyle !== 'undefined'){
+        defaultStyle = edges.defaultStyle.toString().replace(/,/g , ';');
+
+    }
+
     edges.forEach(function (edge) {
         cnt++;
 
@@ -113,7 +140,6 @@ exports.addEdges = function (edges, g) {
         var style = '';
 
 
-
         if(typeof edge.style !== 'undefined'){
             edge.style.forEach(function(s){
                 style = style + s +';';
@@ -122,7 +148,10 @@ exports.addEdges = function (edges, g) {
         else{
             switch(edge.stroke){
                 case 'normal':
-                    style = 'stroke: #333; stroke-width: 1.5px;fill:none';
+                    style = 'fill:none';
+                    if(typeof defaultStyle !== 'undefined'){
+                        style = defaultStyle;
+                    }
                     break;
                 case 'dotted':
                     style = 'stroke: #333; fill:none;stroke-width:2px;stroke-dasharray:3;';
@@ -131,8 +160,6 @@ exports.addEdges = function (edges, g) {
                     style = 'stroke: #333; stroke-width: 3.5px;fill:none';
                     break;
             }
-
-
         }
 
         // Add the edge to the graph
@@ -147,12 +174,16 @@ exports.addEdges = function (edges, g) {
         }
         // Edge with text
         else {
-
+            var edgeText = edge.text.replace(/<br>/g, "\n");
             if(typeof edge.style === 'undefined'){
-                g.setEdge(edge.start, edge.end,{labelType: "html",style: style, labelpos:'c', label: '<span style="background:#e8e8e8">'+edge.text+'</span>', arrowheadStyle: "fill: #333", arrowhead: aHead},cnt);
-            }else{
+                if (global.mermaid.htmlLabels){
+                    g.setEdge(edge.start, edge.end,{labelType: "html",style: style, labelpos:'c', label: '<span style="background:#e8e8e8">'+edge.text+'</span>', arrowheadStyle: "fill: #333", arrowhead: aHead},cnt);
+                }else{
+                    g.setEdge(edge.start, edge.end,{labelType: "text", style: "stroke: #333; stroke-width: 1.5px;fill:none", labelpos:'c', label: edgeText, arrowheadStyle: "fill: #333", arrowhead: aHead},cnt);
+                }
+             }else{
                 g.setEdge(edge.start, edge.end, {
-                    labelType: "html",style: style, arrowheadStyle: "fill: #333", label: edge.text, arrowhead: aHead
+                    labelType: "text", style: style, arrowheadStyle: "fill: #333", label: edgeText, arrowhead: aHead
                 },cnt);
             }
         }
@@ -183,10 +214,12 @@ exports.getClasses = function (text, isDot) {
     var classes = graph.getClasses();
 
     // Add default class if undefined
-    if(typeof classes.default === 'undefined') {
+    if(typeof(classes.default) === 'undefined') {
         classes.default = {id:'default'};
-        classes.default.styles = ['fill:#eaeaea','stroke:#666','stroke-width:1.5px'];
-    } 
+        classes.default.styles = ['fill:#ffa','stroke:#666','stroke-width:3px'];
+        classes.default.nodeLabelStyles = ['fill:#000','stroke:none','font-weight:300','font-family:"Helvetica Neue",Helvetica,Arial,sans-serf','font-size:14px'];
+        classes.default.edgeLabelStyles = ['fill:#000','stroke:none','font-weight:300','font-family:"Helvetica Neue",Helvetica,Arial,sans-serf','font-size:14px'];
+    }
     return classes;
 };
 
@@ -207,7 +240,13 @@ exports.draw = function (text, id,isDot) {
     parser.yy = graph;
 
     // Parse the graph definition
-    parser.parse(text);
+    try{
+
+        parser.parse(text);
+    }
+    catch(err){
+
+    }
 
     // Fetch the default direction, use TD if none was found
     var dir;
@@ -312,6 +351,28 @@ exports.draw = function (text, id,isDot) {
         return shapeSvg;
     };
 
+    // Add custom shape for box with inverted arrow on right side
+    render.shapes().rect_right_inv_arrow = function (parent, bbox, node) {
+        var w = bbox.width,
+            h = bbox.height,
+            points = [
+                {x: 0, y: 0},
+                {x: w+h/2, y: 0},
+                {x: w, y: -h/2},
+                {x: w+h/2, y: -h},
+                {x: 0, y: -h},
+            ];
+        var shapeSvg = parent.insert("polygon", ":first-child")
+            .attr("points", points.map(function (d) {
+                return d.x + "," + d.y;
+            }).join(" "))
+            .attr("transform", "translate(" + (-w / 2) + "," + (h * 2 / 4) + ")");
+        node.intersect = function (point) {
+            return dagreD3.intersect.polygon(node, points, point);
+        };
+        return shapeSvg;
+    };
+
     // Add our custom arrow - an empty arrowhead
     render.arrows().none = function normal(parent, id, edge, type) {
         var marker = parent.append("marker")
@@ -335,7 +396,7 @@ exports.draw = function (text, id,isDot) {
 
     // Run the renderer. This is what draws the final graph.
     render(d3.select("#" + id + " g"), g);
-    var svgb = document.querySelector('#mermaidChart0');
+    var svgb = document.querySelector("#" + id);
 
 /*
  var xPos = document.querySelectorAll('.clusters rect')[0].x.baseVal.value;
@@ -351,23 +412,23 @@ exports.draw = function (text, id,isDot) {
 */
     // Center the graph
     svg.attr("height", g.graph().height );
-    svg.attr("width", g.graph().width );
-    svg.attr("viewBox", svgb.getBBox().x + ' 0 '+ g.graph().width+' '+ g.graph().height);
-
+    if(typeof conf.width === 'undefined'){
+        svg.attr("width", g.graph().width );
+    }else{
+        svg.attr("width", conf.width );
+    }
+    //svg.attr("viewBox", svgb.getBBox().x + ' 0 '+ g.graph().width+' '+ g.graph().height);
+    svg.attr("viewBox",  '0 0 ' + (g.graph().width+20) + ' ' + (g.graph().height+20));
 
     setTimeout(function(){
-        console.log('Fixing titles');
         var i = 0;
         subGraphs.forEach(function(subG){
-            console.log('Setting id '+id);
-
 
             var clusterRects = document.querySelectorAll('#' + id + ' .clusters rect');
             var clusters     = document.querySelectorAll('#' + id + ' .cluster');
 
 
             if(subG.title !== 'undefined'){
-                console.log(clusterRects[i]);
                 var xPos = clusterRects[i].x.baseVal.value;
                 var yPos = clusterRects[i].y.baseVal.value;
                 var width = clusterRects[i].width.baseVal.value;
@@ -379,13 +440,10 @@ exports.draw = function (text, id,isDot) {
                 te.attr('stroke','none');
                 te.attr('id', id+'Text');
                 te.style('text-anchor', 'middle');
-                console.log('Title '+subG.title);
-                console.log('i',i);
-                console.log('x'+xPos+width/2);
-                console.log('y'+xPos);
                 te.text(subG.title);
             }
             i = i + 1;
         });
-    },200);
+    },20);
 };
+

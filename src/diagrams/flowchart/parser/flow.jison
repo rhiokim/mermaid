@@ -1,10 +1,16 @@
-/* description: Parses end executes mathematical expressions. */
+/** mermaid
+ *  http://knsv.github.io/mermaid/
+ *  (c) 2015 Knut Sveidqvist
+ *  MIT license.
+ */
 
 /* lexical grammar */
 %lex
 
 %%
+\%\%[^\n]*            /* do nothing */
 "style"               return 'STYLE';
+"default"             return 'DEFAULT';
 "linkStyle"           return 'LINKSTYLE';
 "classDef"            return 'CLASSDEF';
 "class"               return 'CLASS';
@@ -28,25 +34,25 @@
 ">"                   return 'TAGEND';
 "^"                   return 'UP';
 "v"                   return 'DOWN';
-\-\-[x]               return 'ARROW_CROSS';
-\-\-\>                return 'ARROW_POINT';
-\-\-[o]               return 'ARROW_CIRCLE';
-\-\-\-                return 'ARROW_OPEN';
-\-\.\-[x]             return 'DOTTED_ARROW_CROSS';
-\-\.\-\>              return 'DOTTED_ARROW_POINT';
-\-\.\-[o]             return 'DOTTED_ARROW_CIRCLE';
-\-\.\-                return 'DOTTED_ARROW_OPEN';
-.\-[x]                return 'DOTTED_ARROW_CROSS';
-\.\-\>                return 'DOTTED_ARROW_POINT';
-\.\-[o]               return 'DOTTED_ARROW_CIRCLE';
-\.\-                  return 'DOTTED_ARROW_OPEN';
-\=\=[x]               return 'THICK_ARROW_CROSS';
-\=\=\>                return 'THICK_ARROW_POINT';
-\=\=[o]               return 'THICK_ARROW_CIRCLE';
-\=\=[\=]              return 'THICK_ARROW_OPEN';
-\-\-                  return '--';
-\-\.                  return '-.';
-\=\=                  return '==';
+\s*\-\-[x]\s*            return 'ARROW_CROSS';
+\s*\-\-\>\s*             return 'ARROW_POINT';
+\s*\-\-[o]\s*            return 'ARROW_CIRCLE';
+\s*\-\-\-\s*             return 'ARROW_OPEN';
+\s*\-\.\-[x]\s*          return 'DOTTED_ARROW_CROSS';
+\s*\-\.\-\>\s*           return 'DOTTED_ARROW_POINT';
+\s*\-\.\-[o]\s*          return 'DOTTED_ARROW_CIRCLE';
+\s*\-\.\-\s*             return 'DOTTED_ARROW_OPEN';
+\s*.\-[x]\s*             return 'DOTTED_ARROW_CROSS';
+\s*\.\-\>\s*             return 'DOTTED_ARROW_POINT';
+\s*\.\-[o]\s*            return 'DOTTED_ARROW_CIRCLE';
+\s*\.\-\s*               return 'DOTTED_ARROW_OPEN';
+\s*\=\=[x]\s*            return 'THICK_ARROW_CROSS';
+\s*\=\=\>\s*             return 'THICK_ARROW_POINT';
+\s*\=\=[o]\s*            return 'THICK_ARROW_CIRCLE';
+\s*\=\=[\=]\s*           return 'THICK_ARROW_OPEN';
+\s*\-\-\s*               return '--';
+\s*\-\.\s*               return '-.';
+\s*\=\=\s*               return '==';
 \-                    return 'MINUS';
 "."                   return 'DOT';
 \+                    return 'PLUS';
@@ -123,7 +129,7 @@
 "{"                   return 'DIAMOND_START'
 "}"                   return 'DIAMOND_STOP'
 "\""                  return 'QUOTE';
-\n                    return 'NEWLINE';
+\n+                   return 'NEWLINE';
 \s                    return 'SPACE';
 <<EOF>>               return 'EOF';
 
@@ -137,7 +143,7 @@
 
 %% /* language grammar */
 
-mermaidDoc: graphConfig document ;
+mermaidDoc: graphConfig document;
 
 document
 	: /* empty */
@@ -151,16 +157,18 @@ document
 	;
 
 line
-	: spaceListNewline statement
-	{$$=$2;}
-	| statement
+	: statement
 	{$$=$1;}
 	| SEMI
+	| NEWLINE
+	| SPACE
 	| EOF
 	;
 
 graphConfig
-    : GRAPH SPACE DIR FirstStmtSeperator
+    : SPACE graphConfig
+    | NEWLINE graphConfig
+    | GRAPH SPACE DIR FirstStmtSeperator
         { yy.setDirection($3);$$ = $3;}
     | GRAPH SPACE TAGEND FirstStmtSeperator
         { yy.setDirection("LR");$$ = $3;}
@@ -172,6 +180,12 @@ graphConfig
         { yy.setDirection("TB");$$ = $3;}
     ;
 
+ending: endToken ending
+      | endToken
+      ;
+      
+endToken: NEWLINE | SPACE | EOF;
+      
 FirstStmtSeperator 
     : SEMI | NEWLINE | spaceList NEWLINE ;
 
@@ -190,9 +204,7 @@ spaceList
     ;
 
 statement
-    : commentStatement NEWLINE
-    {$$=[];}
-    | verticeStatement separator
+    : verticeStatement separator
     {$$=$1}
     | styleStatement separator
     {$$=[];}
@@ -204,14 +216,10 @@ statement
     {$$=[];}
     | clickStatement separator
     {$$=[];}
-    | subgraph  text separator document endStatement separator
+    | subgraph  text separator document end separator
     {yy.addSubGraph($4,$2);}
-    | subgraph separator document endStatement separator
+    | subgraph separator document end separator
     {yy.addSubGraph($3,undefined);}
-    ;
-
-endStatement: end
-    | SPACE endStatement
     ;
 
 separator: NEWLINE | SEMI | EOF ;
@@ -225,27 +233,31 @@ verticeStatement:
 
 vertex:  alphaNum SQS text SQE
         {$$ = $1;yy.addVertex($1,$3,'square');}
-    |  alphaNum SQS text SQE SPACE
+    |  alphaNum SQS text SQE spaceList
         {$$ = $1;yy.addVertex($1,$3,'square');}
     | alphaNum PS PS text PE PE
         {$$ = $1;yy.addVertex($1,$4,'circle');}
-    | alphaNum PS PS text PE PE SPACE
+    | alphaNum PS PS text PE PE spaceList
         {$$ = $1;yy.addVertex($1,$4,'circle');}
     | alphaNum PS text PE
         {$$ = $1;yy.addVertex($1,$3,'round');}
-    | alphaNum PS text PE SPACE
+    | alphaNum PS text PE spaceList
         {$$ = $1;yy.addVertex($1,$3,'round');}
     | alphaNum DIAMOND_START text DIAMOND_STOP
         {$$ = $1;yy.addVertex($1,$3,'diamond');}
-    | alphaNum DIAMOND_START text DIAMOND_STOP SPACE
+    | alphaNum DIAMOND_START text DIAMOND_STOP spaceList
         {$$ = $1;yy.addVertex($1,$3,'diamond');}
     | alphaNum TAGEND text SQE
         {$$ = $1;yy.addVertex($1,$3,'odd');}
-    | alphaNum TAGEND text SQE SPACE
+    | alphaNum TAGEND text SQE spaceList
         {$$ = $1;yy.addVertex($1,$3,'odd');}
+/*  | alphaNum SQS text TAGSTART
+        {$$ = $1;yy.addVertex($1,$3,'odd_right');}
+    | alphaNum SQS text TAGSTART spaceList
+        {$$ = $1;yy.addVertex($1,$3,'odd_right');} */
     | alphaNum
         {$$ = $1;yy.addVertex($1);}
-    | alphaNum SPACE
+    | alphaNum spaceList
         {$$ = $1;yy.addVertex($1);}
     ;
 
@@ -257,12 +269,13 @@ alphaNum
     ;
 
 alphaNumStatement
-    : alphaNumToken
+    : DIR
+        {$$=$1;}
+    | alphaNumToken
         {$$=$1;}
     | alphaNumToken MINUS alphaNumToken
         {$$=$1+'-'+$3;}
     ;
-
 
 link: linkStatement arrowText
     {$1.text = $2;$$ = $1;}
@@ -270,20 +283,30 @@ link: linkStatement arrowText
     {$1.text = $2;$$ = $1;}
     | linkStatement
     {$$ = $1;}
-    | linkStatement SPACE
-    {$$ = $1;}
-    | '--' SPACE text SPACE linkStatement
-    {$5.text = $3;$$ = $5;}
-    | '--' SPACE text SPACE linkStatement SPACE
-    {$5.text = $3;$$ = $5;}
-    | '-.' SPACE text SPACE linkStatement
-    {$5.text = $3;$$ = $5;}
-    | '-.' SPACE text SPACE linkStatement SPACE
-    {$5.text = $3;$$ = $5;}
-    | '==' SPACE text SPACE linkStatement
-    {$5.text = $3;$$ = $5;}
-    | '==' SPACE text SPACE linkStatement SPACE
-    {$5.text = $3;$$ = $5;}
+    | '--' text ARROW_POINT
+        {$$ = {"type":"arrow","stroke":"normal","text":$2};}
+    | '--' text ARROW_CIRCLE
+        {$$ = {"type":"arrow_circle","stroke":"normal","text":$2};}
+    | '--' text ARROW_CROSS
+        {$$ = {"type":"arrow_cross","stroke":"normal","text":$2};}
+    | '--' text ARROW_OPEN
+        {$$ = {"type":"arrow_open","stroke":"normal","text":$2};}
+    | '-.' text DOTTED_ARROW_POINT
+        {$$ = {"type":"arrow","stroke":"dotted","text":$2};}
+    | '-.' text DOTTED_ARROW_CIRCLE
+        {$$ = {"type":"arrow_circle","stroke":"dotted","text":$2};}
+    | '-.' text DOTTED_ARROW_CROSS
+        {$$ = {"type":"arrow_cross","stroke":"dotted","text":$2};}
+    | '-.' text DOTTED_ARROW_OPEN
+        {$$ = {"type":"arrow_open","stroke":"dotted","text":$2};}
+    | '==' text THICK_ARROW_POINT
+        {$$ = {"type":"arrow","stroke":"thick","text":$2};}
+    | '==' text THICK_ARROW_CIRCLE
+        {$$ = {"type":"arrow_circle","stroke":"thick","text":$2};}
+    | '==' text THICK_ARROW_CROSS
+        {$$ = {"type":"arrow_cross","stroke":"thick","text":$2};}
+    | '==' text THICK_ARROW_OPEN
+        {$$ = {"type":"arrow_open","stroke":"thick","text":$2};}
     ;
 
 linkStatement: ARROW_POINT
@@ -333,7 +356,7 @@ commentText: commentToken
 
 
 keywords
-    : STYLE | LINKSTYLE | CLASSDEF | CLASS | CLICK | GRAPH | DIR | subgraph | end ;
+    : STYLE | LINKSTYLE | CLASSDEF | CLASS | CLICK | GRAPH | DIR | subgraph | end | DOWN | UP;
 
 
 textNoTags: textNoTagsToken
@@ -343,8 +366,10 @@ textNoTags: textNoTagsToken
     ;
 
 
-classDefStatement:CLASSDEF SPACE alphaNum SPACE stylesOpt
+classDefStatement:CLASSDEF SPACE DEFAULT SPACE stylesOpt
     {$$ = $1;yy.addClass($3,$5);}
+    | CLASSDEF SPACE alphaNum SPACE stylesOpt
+          {$$ = $1;yy.addClass($3,$5);}
     ;
 
 classStatement:CLASS SPACE alphaNum SPACE alphaNum
@@ -361,8 +386,10 @@ styleStatement:STYLE SPACE alphaNum SPACE stylesOpt
           {$$ = $1;yy.updateLink($3,$5);}
     ;
 
-linkStyleStatement:
-    LINKSTYLE SPACE NUM SPACE stylesOpt
+linkStyleStatement
+    : LINKSTYLE SPACE DEFAULT SPACE stylesOpt
+          {$$ = $1;yy.updateLink($3,$5);}
+    | LINKSTYLE SPACE NUM SPACE stylesOpt
           {$$ = $1;yy.updateLink($3,$5);}
     ;
 
@@ -385,7 +412,7 @@ styleComponent: ALPHA | COLON | MINUS | NUM | UNIT | SPACE | HEX | BRKT | DOT | 
 
 commentToken   : textToken | graphCodeTokens ;
 
-textToken      : textNoTagsToken | TAGSTART | TAGEND | '=='  | '--' ;
+textToken      : textNoTagsToken | TAGSTART | TAGEND | '=='  | '--' | PCT | DEFAULT;
 
 textNoTagsToken: alphaNumToken | SPACE | MINUS | keywords ;
 

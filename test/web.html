@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
 
     <script src="../dist/mermaid.full.js"></script>
-    <scrpt src="https://cdn.rawgit.com/knsv/mermaid/0.3.0/dist/mermaid.full.min.js"></scrpt>
     <script>
         var mermaid_config = {
-            startOnLoad:true
+            startOnLoad:true,
+            htmlLabels:true
         }
         mermaid.startOnLoad=true;
+        mermaid.flowchartConfig = {width:'100%'};
     </script>
     <script>
         function apa(){
@@ -24,19 +25,69 @@
         }
     </style>
     <link rel="stylesheet" href="seq.css"/>
+    <lnk rel="stylesheet" href="https://raw.githubusercontent.com/knsv/mermaid/master/dist/mermaid.forest.css"/>
+    <link rel="stylesheet" href="../dist/mermaid.css"/>
 </head>
     <body>
+    <h1>Issue 141</h1>
+    <div  class="mermaid" id="i141">
+
+        graph LR
+        
+        %% Example diagram
+        A[Square Rect] -- Link text --> B((Circle))
+        A --> C(Round Rect)
+        B --> D{Rhombus}
+        C --> D
+
+    </div>
+    <h1>Issue 140</h1>
+    <div  class="mermaid" id="i140">
+        graph LR
+        A-->B
+        B-->C
+        C-->A
+        D-->C
+
+    </div>
+    <div  class="mermaid" id="ettan">
+        graph LR;
+        A[Now with default style on links]--v-->B{a = '1,2'}
+        B-->|v|C[v]
+        B-- ... default style on links -->Z[My default thing this]
+        C-->D{condition};
+
+        linkStyle 0 stroke-width:2px,fill:none,stroke:blue;
+        linkStyle default stroke-width:2px,fill:none,stroke:red;
+
+    </div>
+    <h1>Issue 2</h1>
+    <div class="mermaid">
+        graph LR
+        A[Square Rect]  --      Link text      -->       B((Circle))
+        A[Square Rect]--v-->D((Circle))
+        A --> C(Round Rect)
+        B    ==  testing ==>     D{Rhombus}
+        C-.->D
+    </div>
+    <h1>Issue </h1>
+    <div class="mermaid">
+        graph TD
+        question1{Gas tank less than 1/8?}
+        action1[Fill tank to 100%]
+        question1-- Yes -->action1
+    </div>
     <h1>Shapes</h1>
     <div class="mermaid">
     graph TD;
-        A-->B;
+        A[Default style on nodes]-->B;
         A-->C;
         A-->D;
         B-->D;
         A-->|Link text|B
-        classDef default fill:#9f6,stroke:#333,stroke-width:2px;
+        classDef default fill:#f96,stroke:#333,stroke-width:2px;
         classDef green fill:#9f6,stroke:#333,stroke-width:2px;
-        class green B;
+        class B green;
     </div>
     <h1>Sub graphs</h1>
     <div class="mermaid">graph LR
@@ -61,7 +112,12 @@
         end
 
     </div>
-    <div class="mermaid2">graph TB
+    <div class="mermaid">graph TB
+        subgraph one
+        a1-->a2
+        end
+    </div>
+    <div class="mermaid">graph TB
         subgraph one
         a1-->a2
         end
@@ -74,7 +130,7 @@
         c1-->a2
 
     </div>
-    <div class="mermaid2">graph TB
+    <div class="mermaid" >graph TB
         subgraph
             sq[Square shape] -.-> ci((Circle shape))
             od>Odd shape]-. Two line<br>edge comment .-> ro
@@ -169,7 +225,7 @@
 
     </div>
 
-    <div  class="mermaid2">
+    <div  class="mermaid">
 graph LR;
                 A[Start]-->B{a = '1,2'}
                 B-->|True|C[test = 1]
@@ -189,6 +245,7 @@ graph LR;
                 L-->M[Any Action];
                 M-->N[Any Other Action];
                 N-->Z;
+        linkStyle 11 stroke-width:2px,fill:none,stroke:red;
 
     </div>
     <h1>Dot syntax (experimental)</h1>

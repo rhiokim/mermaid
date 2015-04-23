@@ -33,14 +33,14 @@ graph TD;
 sequenceDiagram
     participant Alice
     participant Bob
-    Alice->John: Hello John, how are you?
+    Alice->>John: Hello John, how are you?
     loop Healthcheck
-        John->John: Fight against hypochondria
+        John->>John: Fight against hypochondria
     end
     Note right of John: Rational thoughts &lt;br/>prevail...
-    John-->Alice: Great!
-    John->Bob: How about you?
-    Bob-->John: Jolly good!
+    John-->>Alice: Great!
+    John->>Bob: How about you?
+    Bob-->>John: Jolly good!
 </code>
 </pre>
 </td>
@@ -62,7 +62,7 @@ sequenceDiagram
 Many thanks to the [d3](http://d3js.org/) and [dagre-d3](https://github.com/cpettitt/dagre-d3) projects for providing
 the graphical layout and drawing libraries! Thanks also to the
 [js-sequence-diagram](http://bramp.github.io/js-sequence-diagrams) project for usage of the grammar for the
-sequence diagrams.
+sequence diagrams. Thanks to Jessica Peter for inspiration and starting point for gantt rendering.
 
 *Mermaid was created by Knut Sveidqvist for easier documentation.*
 

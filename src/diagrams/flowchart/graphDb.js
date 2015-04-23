@@ -75,7 +75,12 @@ exports.addLink = function (start, end, type, linktext) {
  */
 exports.updateLink = function (pos, style) {
     var position = pos.substr(1);
-    edges[pos].style = style;
+
+    if(pos === 'default'){
+        edges.defaultStyle = style;
+    }else{
+        edges[pos].style = style;
+    }
 };
 
 exports.addClass = function (id, style) {
@@ -218,6 +223,9 @@ exports.addSubGraph = function (list, title) {
 
         return a.filter(function(item) {
             var type = typeof item;
+            if(item===' '){
+                return false;
+            }
             if(type in prims)
                 return prims[type].hasOwnProperty(item) ? false : (prims[type][item] = true);
             else
@@ -228,10 +236,13 @@ exports.addSubGraph = function (list, title) {
     var subG = [];
 
     subG = uniq(subG.concat.apply(subG,list));
-    //console.log(subG);
 
     subGraphs.push({nodes:subG,title:title});
 };
 exports.getSubGraphs = function (list) {
     return subGraphs;
+};
+
+exports.parseError = function(err,hash){
+    mermaid.parseError(err,hash);
 };

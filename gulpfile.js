@@ -12,6 +12,7 @@ var bump = require('gulp-bump');
 var tag_version = require('gulp-tag-version');
 var jshint = require('gulp-jshint');
 var stylish = require('jshint-stylish');
+var insert = require('gulp-insert');
 
 var paths = {
   scripts: ['./src/**/*.js', '!**/parser/*.js']
@@ -27,6 +28,8 @@ gulp.task('jison', shell.task([
   'jison src/diagrams/flowchart/parser/flow.jison -o src/diagrams/flowchart/parser/flow.js',
   'jison src/diagrams/flowchart/parser/dot.jison -o src/diagrams/flowchart/parser/dot.js',
   'jison src/diagrams/sequenceDiagram/parser/sequenceDiagram.jison -o src/diagrams/sequenceDiagram/parser/sequenceDiagram.js',
+  'jison src/diagrams/example/parser/example.jison -o src/diagrams/example/parser/example.js',
+  'jison src/diagrams/gantt/parser/gantt.jison -o src/diagrams/gantt/parser/gantt.js',
   //'jison src/diagrams/sequenceDiagram/parser/sequenceDiagram.jison -o src/diagrams/sequenceDiagram/parser/sequenceDiagram.js'
 ]));
 
@@ -71,12 +74,26 @@ gulp.task('less', function () {
 
 var browserify = require('gulp-browserify');
 
+//var slim_ext_libs = [
+//  'dagre-d3',
+//  'd3'
+//];
+
 // Basic usage
 gulp.task('slimDist', function() {
     // Single entry point to browserify
     return gulp.src('src/main.js')
         .pipe(browserify())
+        /*.pipe(browserify({standalone: 'mermaid'})) 
+            .on('prebundle', function(bundle) {
+            // Keep these external for the slim version.
+                slim_ext_libs.forEach(function(lib) {
+                    bundle.external(lib);
+                });
+            })*/
         .pipe(rename('mermaid.slim.js'))
+        .pipe(insert.prepend('(function () { var define = undefined; '))
+        .pipe(insert.append(' })();'))
         .pipe(gulp.dest('./dist/'))
         .pipe(uglify())
         .pipe(extReplace('.min.js'))
@@ -169,3 +186,20 @@ gulp.task('lint', function() {
 });
 
 gulp.task('test',['coverage','tape']);
+
+gulp.task('mermaid-less', function () {
+    gulp.src(['./src/less/*/mermaid.less'])
+        .pipe(less({
+            generateSourceMap: false, // default true
+            paths: [ path.join(__dirname, 'less', 'includes') ]
+        }))
+        .pipe(rename(function (path) {
+            if(path.dirname === 'default'){
+                path.basename = 'mermaid';
+            }else{
+                path.basename = 'mermaid.' + path.dirname;
+            }
+            path.dirname = '';
+        }))
+        .pipe(gulp.dest('./dist/'));
+});
